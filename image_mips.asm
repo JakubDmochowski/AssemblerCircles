@@ -47,10 +47,11 @@ main:
 	li	$a2, 256
 	jal 	_move_to
 	
-	li	$s0, 256
-	li	$s1, 0
+	li	$s0, 512	#radius
+	li	$s1, 0		#color
+	li	$s2, 256	#minimal radius
 _main_loop:
-	subiu	$s0, $s0, 3
+	subiu	$s0, $s0, 5
 	not	$s1, $s1
 	la  	$a0, ($v0)
 	la	$a1, ($s1)
@@ -60,7 +61,7 @@ _main_loop:
 	la	$a1, ($s0)
 	jal	_draw_circle
 	
-	bgtz 	$s0, _main_loop
+	bgt  	$s0, $s2, _main_loop
 
 ######################################
 
@@ -169,15 +170,6 @@ _draw_circle:
 	li	$s1, 0		#initialize s1: x = 0
 	la	$s2, ($a1)	#initialize s2: y = r
 	
-	addu	$t0, $s6, $a1
-	bgeu 	$t0, $s4, _draw_circle_end
-	addu	$t0, $s5, $a1
-	bgeu	$t0, $s3, _draw_circle_end
-	subu	$t0, $s6, $a1
-	blez	$t0, _draw_circle_end
-	subu	$t0, $s5, $a1
-	blez	$t0, _draw_circle_end
-	
 	li	$t0, 3
 	sll	$t1, $s2, 1
 	subu	$s0, $t0, $t1	#d = 3 - 2r
@@ -206,15 +198,20 @@ _draw_circle_opt_end:
 #drawPixels
 #putpixel(xc+x, yc+y, RED);
     	addu	$t0, $s6, $s2	#yc + y
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_1_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_1_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	addu	$t1, $s5, $s1 	#cx + x
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_1_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_1_end
+    	
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_1_colour_0
@@ -236,15 +233,19 @@ _draw_circle_put_pixel_1_end:
 
 #putpixel(xc-x, yc+y, RED);   
     	addu	$t0, $s6, $s2	#yc + y
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_2_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_2_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	subu	$t1, $s5, $s1 	#cx - x
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_2_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_2_end
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_2_colour_0
@@ -265,15 +266,19 @@ _draw_circle_put_pixel_2_colour_0:
 _draw_circle_put_pixel_2_end:  	
 #putpixel(xc+x, yc-y, RED); 
     	subu	$t0, $s6, $s2	#yc - y
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_3_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_3_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	addu	$t1, $s5, $s1 	#cx + x
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_3_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_3_end
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_3_colour_0
@@ -294,15 +299,19 @@ _draw_circle_put_pixel_3_colour_0:
 _draw_circle_put_pixel_3_end:  	
 #putpixel(xc-x, yc-y, RED); 
     	subu	$t0, $s6, $s2	#yc - y
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_4_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_4_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	subu	$t1, $s5, $s1 	#cx - x
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_4_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_4_end
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_4_colour_0
@@ -323,15 +332,19 @@ _draw_circle_put_pixel_4_colour_0:
 _draw_circle_put_pixel_4_end:  	
 #putpixel(xc+y, yc+x, RED); 
     	addu	$t0, $s6, $s1	#yc + x
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_5_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_5_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	addu	$t1, $s5, $s2 	#cx + y
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_5_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_5_end
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_5_colour_0
@@ -352,15 +365,19 @@ _draw_circle_put_pixel_5_colour_0:
 _draw_circle_put_pixel_5_end:  	
 #putpixel(xc-y, yc+x, RED); 
     	addu	$t0, $s6, $s1	#yc + x
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_6_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_6_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	subu	$t1, $s5, $s2 	#cx - y
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_6_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_6_end
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_6_colour_0
@@ -381,15 +398,19 @@ _draw_circle_put_pixel_6_colour_0:
 _draw_circle_put_pixel_6_end:  	
 #putpixel(xc+y, yc-x, RED); 
     	subu	$t0, $s6, $s1	#yc - x
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_7_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_7_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	addu	$t1, $s5, $s2 	#cx + y
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_7_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_7_end
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_7_colour_0
@@ -410,15 +431,19 @@ _draw_circle_put_pixel_7_colour_0:
 _draw_circle_put_pixel_7_end:  	
 #putpixel(xc-y, yc-x, RED); 
     	subu	$t0, $s6, $s1	#yc - x
+    				#if out of bound on height, dont draw pixel
+    	bltz 	$t0, _draw_circle_put_pixel_8_end
+    	bgt	$t0, $s4, _draw_circle_put_pixel_8_end
     	sra	$t1, $s3, 3	#width adjustment to memory shift
     	mulou	$t0, $t0, $t1	
     	addu	$t3, $t9, $t0	#(y+yc)pImg
     	
-    	li	$t0, 8
     	subu	$t1, $s5, $s2 	#cx - y
-    	divu	$t1, $t0
-    	mflo	$t1		#quotient
-    	mfhi	$t2		#reminder
+    				#if out of bound on width, dont draw pixel		
+    	bltz 	$t1, _draw_circle_put_pixel_8_end
+    	bgt	$t1, $s3, _draw_circle_put_pixel_8_end
+    	and	$t2, $t1, 7	#reminder
+    	sra	$t1, $t1, 3	#quotient
     	addu	$t3, $t3, $t1	#t3 - proper memory place where pixel should be put
     	
     	beqz	$s7, _draw_circle_put_pixel_8_colour_0
